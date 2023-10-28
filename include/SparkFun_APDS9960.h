@@ -242,7 +242,11 @@ public:
     /* Turn the APDS-9960 on and off */
     bool enablePower();
     bool disablePower();
-    
+
+    /* WTIME low power mode between roximity and/or ALS cycles */
+    uint16_t getProxAlsWtime();
+    void setProxAlsWtime(uint16_t val);
+
     /* Enable or disable specific sensors */
     bool enableLightSensor(bool interrupts = false);
     bool disableLightSensor();
@@ -276,6 +280,12 @@ public:
     bool setProximityIntLowThreshold(uint8_t threshold);
     bool getProximityIntHighThreshold(uint8_t &threshold);
     bool setProximityIntHighThreshold(uint8_t threshold);
+
+    /* Get and set Interrupt persistence for Proxi and ALS */
+    uint8_t getProxIntPersist();
+    bool setProxIntPersist(uint8_t persist);
+    uint8_t getAlsIntPersist();
+    bool setAlsIntPersist(uint8_t persist);
     
     /* Get and set interrupt enables */
     uint8_t getAmbientLightIntEnable();
@@ -324,6 +334,18 @@ public:
     uint8_t getProxPhotoMask();
     bool setProxPhotoMask(uint8_t mask);
     
+    /* Proximity pulse count/length */
+    uint8_t getProxPulseLength();
+    bool setProxPulseLength(uint8_t val);
+    uint8_t getProxPulseCount();
+    bool setProxPulseCount(uint8_t val);
+
+    /* Gesture pulse count/length */
+    uint8_t getGesturePulseLength();
+    bool setGesturePulseLength(uint8_t val);
+    uint8_t getGesturePulseCount();
+    bool setGesturePulseCount(uint8_t val);
+
     /* Gesture threshold control */
     uint8_t getGestureEnterThresh();
     bool setGestureEnterThresh(uint8_t threshold);

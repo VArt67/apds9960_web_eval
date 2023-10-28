@@ -144,9 +144,13 @@ const char MAIN_page[] PROGMEM = R"=====(
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><label>Persistence Register (0x8C) </label></td>
-                                    <td>-na- </br>Any
-                                        proximity value outside of threshold range </td>
+                                    <td><label title="The Interrupt Persistence sets a value which is compared with the accumulated amount of ALS cycles in which results were outside threshold values. Any ALS result that is inside threshold values resets the count.">Interrupt Persistence</label></td>
+                                    <td><input type="number" min="0" max="60" step="1" value="1" required name="alsIntPersistance"
+    title="0:Every proximity cycle, 
+1:Any proximity value outside of threshold range,
+n: n consecutive proximity values out of range,
+    n=2,3,5,10,15,20,..,60"
+                                        ></td>
                                 </tr>
                             </table>
                         </fieldset>
@@ -206,12 +210,22 @@ const char MAIN_page[] PROGMEM = R"=====(
                                             name="pInterruptHighThreshold"></td>
                                 </tr>
                                 <tr>
-                                    <td><label>Persistence Register (0x8C) </td>
-                                    <td>-na- </br>Any
-                                        proximity value outside of threshold range </td>
+                                    <td><label title="The Interrupt Persistence sets a value which is compared with the accumulated amount of Proximity cycles in which results were outside threshold values. Any Proximity result that is inside threshold values resets the count.">Interrupt Persistence</label></td>
+                                    <td><input type="number" min="0" max="15" step="1" value="1" required name="pIntPersistance" 
+                                        title="0:Every proximity cycle, 
+1:Any proximity value outside of threshold range, 
+n: n consecutive proximity values out of range"></td>
                                 </tr>
                             </table>
                         </fieldset>
+                        
+                        <table>
+                            <tr>
+                                <td><label title="The WTIME controls the amount of time in a low power mode between Proximity and/or ALS cycles.">WTIME (low power duration) ms</label></td>
+                                <td><input type="number" step=any  name="wTimeLowPower"
+                                    title="NOTE: This reg is (re-)set to 2.78 if gesture is enabled! Values up to 8540 ms can be set"></td>
+                            </tr>
+                        </table>
 
                         <fieldset class="mb-2">
                             <legend class="subdes">Gesture Sensor</legend>

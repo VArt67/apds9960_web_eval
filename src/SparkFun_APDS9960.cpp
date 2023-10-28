@@ -747,6 +747,62 @@ bool SparkFun_APDS9960::disablePower()
     return true;
 }
 
+/**
+ * @brief Returns the WTIME in milliseconds
+ *        this is the amount of time in a low power mode between Proximity and/or ALS cycles.
+ * @return time in milliseconds
+ */
+uint16_t SparkFun_APDS9960::getProxAlsWtime()
+{
+    uint8_t val_byte;
+    if (wireReadDataByte(APDS9960_WTIME, val_byte))
+    {
+        uint8_t conf_byte;
+        if (wireReadDataByte(APDS9960_CONFIG1, conf_byte))
+        {
+            uint8_t factor12 = (conf_byte >> 1) & 0x01; // WLONG bit
+            uint16_t wtime;
+
+            if (factor12)
+                wtime = (256 - val_byte) * 2.78 * 12;
+            else
+                wtime = (256 - val_byte) * 2.78;
+            return wtime;
+        }
+    }
+    return 0;
+}
+
+/**
+ * @brief Sets the WTIME in milliseconds
+ *        this is the amount of time in a low power mode between Proximity and/or ALS cycles.
+ * @return time in milliseconds
+ */
+void SparkFun_APDS9960::setProxAlsWtime(uint16_t wtime)
+{
+    uint8_t factor12 = 1;
+    if (wtime < 2.78)
+        wtime = 2.79;
+    if (wtime > 8540)
+        wtime = 8539;
+
+    if (wtime > 712)
+    {
+        factor12 = 12;
+        if (!wireWriteDataByte(APDS9960_CONFIG1, 0x62))  // set WLONG bit
+            return;
+    }
+    else
+    {
+        if (!wireWriteDataByte(APDS9960_CONFIG1, 0x60))  // clear WLONG bit
+            return;
+    }
+        
+    wtime /= factor12;
+
+    uint8_t val_byte = 256 - (wtime / 2.78);
+    wireWriteDataByte(APDS9960_WTIME, val_byte);
+}
 /*******************************************************************************
  * Ambient light and color sensor controls
  ******************************************************************************/
@@ -1228,6 +1284,8 @@ bool SparkFun_APDS9960::setProxIntHighThresh(uint8_t threshold)
     return true;
 }
 
+//-----------
+
 /**
  * @brief Returns LED drive strength for proximity and ALS
  *
@@ -1288,6 +1346,8 @@ bool SparkFun_APDS9960::setLEDDrive(uint8_t drive)
     
     return true;
 }
+
+//-----------
 
 /**
  * @brief Returns receiver gain for proximity detection
@@ -1410,6 +1470,8 @@ bool SparkFun_APDS9960::setAmbientLightGain(uint8_t drive)
     return true;
 }
 
+//-----------
+
 /**
  * @brief Get the current LED boost value
  * 
@@ -1469,8 +1531,10 @@ bool SparkFun_APDS9960::setLEDBoost(uint8_t boost)
     }
     
     return true;
-}    
-   
+}
+
+//-----------
+
 /**
  * @brief Gets proximity gain compensation enable
  *
@@ -1519,6 +1583,88 @@ uint8_t SparkFun_APDS9960::getProxGainCompEnable()
     
     return true;
 }
+
+//-----------
+
+/**
+ * @brief Gets the current pulse length setting for proximity
+ *
+ * @return bit coded pulse length value
+ */
+uint8_t SparkFun_APDS9960::getProxPulseLength()
+{
+    uint8_t val;
+    if (!wireReadDataByte(APDS9960_PPULSE, val))
+        return ERROR;
+    /* pulse length bits 7:6 */
+    val = (val >> 6) & 0b00000011;
+    return val;
+}
+
+/**
+ * @brief Sets the current pulse length setting for proximity
+ *
+ * 0 -> 4 μs
+ * 1 -> 8 μs (default)
+ * 2 -> 16 μs
+ * 3 -> 32 μs
+ *
+ * @param[in] mask 2-bit value
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setProxPulseLength(uint8_t val)
+{
+    uint8_t origVal;
+    /* Read Pulse Count/Length Register (0x8E) */
+    if (!wireReadDataByte(APDS9960_PPULSE, origVal))
+        return false;
+
+    /* pulse length bits 7:6 */
+    origVal &= 0b00111111;  // keep pulse count value
+    origVal |= ((val-1) << 6) & 0b11000000;
+
+    if (!wireWriteDataByte(APDS9960_PPULSE, origVal))
+       return false;
+    return true;
+}
+
+/**
+ * @brief Gets the current pulse count setting for proximity
+ *
+ * @return bit coded pulse count value
+ */
+uint8_t SparkFun_APDS9960::getProxPulseCount()
+{
+    uint8_t val;
+    if (!wireReadDataByte(APDS9960_PPULSE, val))
+       return ERROR;
+    /* pulse count bits 0:5 */
+    val &= 0b00111111;
+    return val+1;
+}
+
+/**
+ * @brief Sets the current pulse count setting for proximity
+ * 0..64
+ * @param[in] length as 6-bit value
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setProxPulseCount(uint8_t val)
+{
+    uint8_t origVal;
+    /* Read Pulse Count/Length Register (0x8E) */
+    if (!wireReadDataByte(APDS9960_PPULSE, origVal))
+       return false;
+
+    /* pulse length bits 7:6 */
+    origVal &= 0b11000000; // keep pulse length value
+    origVal |= ((val-1)  & 0b00111111);
+
+    if (!wireWriteDataByte(APDS9960_PPULSE, origVal))
+       return false;
+    return true;
+}
+//-----------
 
 /**
  * @brief Gets the current mask for enabled/disabled proximity photodiodes
@@ -1581,6 +1727,89 @@ bool SparkFun_APDS9960::setProxPhotoMask(uint8_t mask)
     
     return true;
 }
+
+//-----------
+
+/**
+ * @brief Gets the current pulse length setting for gesture
+ *
+ * @return bit coded pulse length value
+ */
+uint8_t SparkFun_APDS9960::getGesturePulseLength()
+{
+    uint8_t val;
+    if (!wireReadDataByte(APDS9960_GPULSE, val))
+        return ERROR;
+    /* pulse length bits 7:6 */
+    val = (val >> 6) & 0b00000011;
+    return val;
+}
+
+/**
+ * @brief Sets the current pulse length setting for gesture
+ *
+ * 0 -> 4 us
+ * 1 -> 8 us (default)
+ * 2 -> 16 us
+ * 3 -> 32 us
+ *
+ * @param[in] mask 2-bit value
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setGesturePulseLength(uint8_t val)
+{
+    uint8_t origVal;
+    /* Read Pulse Count/Length Register (0xA6) */
+    if (!wireReadDataByte(APDS9960_GPULSE, origVal))
+        return false;
+
+    /* pulse length bits 7:6 */
+    origVal &= 0b00111111; // keep pulse count value
+    origVal |= (val << 6) & 0b11000000;
+
+    if (!wireWriteDataByte(APDS9960_GPULSE, origVal))
+        return false;
+    return true;
+}
+
+/**
+ * @brief Gets the current pulse count setting for gesture
+ *
+ * @return bit coded pulse count value
+ */
+uint8_t SparkFun_APDS9960::getGesturePulseCount()
+{
+    uint8_t val;
+    if (!wireReadDataByte(APDS9960_GPULSE, val))
+        return ERROR;
+    /* pulse count bits 0:5 */
+    val &= 0b00111111;
+    return val+1;
+}
+
+/**
+ * @brief Sets the current pulse count setting for gesture
+ * 0..64
+ * @param[in] length as 6-bit value
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setGesturePulseCount(uint8_t val)
+{
+    uint8_t origVal;
+    /* Read Pulse Count/Length Register (0xA6) */
+    if (!wireReadDataByte(APDS9960_GPULSE, origVal))
+        return false;
+
+    /* pulse length bits 7:6 */
+    origVal &= 0b11000000; // keep pulse length value
+    origVal |= (val & 0b00111111);
+
+    if (!wireWriteDataByte(APDS9960_GPULSE, origVal))
+        return false;
+    return true;
+}
+
+//-----------
 
 /**
  * @brief Gets the entry proximity threshold for gesture sensing
@@ -1645,6 +1874,8 @@ bool SparkFun_APDS9960::setGestureExitThresh(uint8_t threshold)
     
     return true;
 }
+
+//-----------
 
 /**
  * @brief Gets the gain of the photodiode during gesture mode
@@ -1836,6 +2067,8 @@ bool SparkFun_APDS9960::setGestureWaitTime(uint8_t time)
     return true;
 }
 
+//-----------
+
 /**
  * @brief Gets the low threshold for ambient light interrupts
  *
@@ -1944,6 +2177,8 @@ bool SparkFun_APDS9960::setLightIntHighThreshold(uint16_t threshold)
     return true;
 }
 
+//-----------
+
 /**
  * @brief Gets the low threshold for proximity interrupts
  *
@@ -2013,6 +2248,126 @@ bool SparkFun_APDS9960::setProximityIntHighThreshold(uint8_t threshold)
     
     return true;
 }
+
+/**
+ * @brief  gets the value which is compared with the accumulated amount of Proximity
+ *  cycles in which results were outside threshold values. Any Proximity that
+ *  is inside threshold values resets the count.
+ *
+ * @return Proximity Interrupt Persistence
+ */
+uint8_t SparkFun_APDS9960::getProxIntPersist()
+{
+    uint8_t value = 1;
+    Serial.println("----getProxIntPersist");
+
+    /* Read value from Persistence Register */
+    if (wireReadDataByte(APDS9960_PERS, value))
+        value = (value >> 4) & 0x0F; // PPERS 7:4
+    Serial.print("return value=0x");
+    Serial.println(value,HEX);
+    return value;
+}
+
+/**
+ * @brief  sets a value which is compared with the accumulated amount of  Proximity
+ *  cycles in which results were outside threshold values. Any Proximity that
+ *  is inside threshold values resets the count.
+ *
+ * @param[in]  Proximity Interrupt Persistence
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setProxIntPersist(uint8_t persist)
+{
+    uint8_t value;
+    Serial.println("----setProxIntPersist");
+    if (wireReadDataByte(APDS9960_PERS, value))
+    {
+        Serial.print("read value=0x");
+        Serial.println(value, HEX);
+        value &= 0x0F;
+        value |= persist << 4;
+        Serial.print ("set value=0x");
+        Serial.println(value, HEX);
+        return wireWriteDataByte(APDS9960_PERS, value);
+    }
+    return false;
+}
+
+/**
+ * @brief  gets the value which is compared with the accumulated amount of  ALS
+ *  cycles in which results were outside threshold values. Any ALS that
+ *  is inside threshold values resets the count.
+ *
+ * @return ALS Interrupt Persistence
+ */
+uint8_t SparkFun_APDS9960::getAlsIntPersist()
+{
+    uint8_t value = 1;
+    Serial.println("-----getAlsIntPersist");
+
+    /* Read value from Persistence Register */
+    if (wireReadDataByte(APDS9960_PERS, value))
+        value &= 0x0F; // APERS 3:0
+    Serial.print("read value=0x");
+    Serial.println(value,HEX);
+    if (value > 3)
+    {
+        value = (value-3)*5;
+    }
+    Serial.print("return value=dez ");
+    Serial.println(value);
+    return value;
+}
+
+/**
+ * @brief sets a value which is compared with the accumulated amount of  ALS
+ *  cycles in which results were outside threshold values. Any ALS that
+ *  is inside threshold values resets the count.
+ *
+ * 0 Every ALS cycle
+ * 1 Any ALS value outside of threshold range
+ * 2 consecutive proximity values out of range
+ * 3 consecutive proximity values out of range
+ * 5 …
+ * 10 …
+ * 15 …
+ *  …
+ * 60 consecutive ALS values out of range
+ * 
+ * @param[in] ALS Interrupt Persistence
+ * @return True if operation successful. False otherwise.
+ */
+bool SparkFun_APDS9960::setAlsIntPersist(uint8_t persist)
+{
+    uint8_t value;
+    Serial.println("------setAlsIntPersist");
+    Serial.print("persist value= dez");
+    Serial.println(persist);
+    if (persist > 3)
+    {
+        // persist 5  -> register value 4
+        // persist 10 -> register value 5
+        // persist 15 -> register value 6
+        persist = (persist + 1) / 5; 
+        persist += 3;
+    }
+    Serial.print("persist value= dez");
+    Serial.println(persist);
+    if (wireReadDataByte(APDS9960_PERS, value))
+    {
+        Serial.print  ("read reg=0x");
+        Serial.println(value,HEX);
+        value &= 0xF0;
+        value |= persist & 0x0F;
+        Serial.print ("set reg=0x");
+        Serial.println(value, HEX);
+        return wireWriteDataByte(APDS9960_PERS, value);
+    }
+    return false;
+}
+
+//-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 /**
  * @brief Gets if ambient light interrupts are enabled or not
@@ -2207,6 +2562,8 @@ bool SparkFun_APDS9960::clearAlsClearChannelInt()
 
     return true;
 }
+
+//-----------
 
 /**
  * @brief Tells if the gesture state machine is currently running

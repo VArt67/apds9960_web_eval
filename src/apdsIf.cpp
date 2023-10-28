@@ -37,7 +37,7 @@ static void interruptRoutine()
 }
 
 // Interrupt callback function in IRAM
-static void ICACHE_RAM_ATTR interruptRoutine();
+static void IRAM_ATTR interruptRoutine();
 
 //----------------------------------------------------------------
 
@@ -182,7 +182,9 @@ static void handleGesture()
         }
     }
     else
+    {   
         ESP_LOGD(TAG, "NO GestureAvailable");
+    }
 }
 
 static void handleALS()
@@ -236,6 +238,7 @@ void APDSIF_provideSensorSetupData(DynamicJsonDocument &doc)
     doc[F("alsInterruptLowThreshold")] = threshold;
     apds.getLightIntHighThreshold(threshold);
     doc[F("alsInterruptHighThreshold")] = threshold;
+    doc[F("alsIntPersistance")]  = apds.getAlsIntPersist();
 
     apds.getMode(PROXIMITY, enabled);
     doc[F("enableProximitySensor")] = enabled ? 1 : 0;
@@ -244,12 +247,15 @@ void APDSIF_provideSensorSetupData(DynamicJsonDocument &doc)
     doc[F("enableProximitySensorInterruptsLL")] = apds.getProximityIntEnable();
     doc[F("proximitySensorGain")] = apds.getProximityGain();
     doc[F("ledDrive")] = apds.getLEDDrive();
-    doc[F("pPulseL")] = 2;  // TODO
-    doc[F("pPulseC")] = 10; // TODO
+    doc[F("pPulseL")] = apds.getProxPulseLength();
+    doc[F("pPulseC")] = apds.getProxPulseCount();
     apds.getProximityIntLowThreshold(enabled);
     doc[F("pInterruptLowThreshold")] = enabled;
     apds.getProximityIntHighThreshold(enabled);
     doc[F("pInterruptHighThreshold")] = enabled;
+    doc[F("pIntPersistance")] = apds.getProxIntPersist();
+
+    doc[F("wTimeLowPower")] = apds.getProxAlsWtime();
 
     apds.getMode(GESTURE, enabled);
     doc[F("enableGestureSensor")] = enabled ? 1 : 0;
@@ -258,8 +264,8 @@ void APDSIF_provideSensorSetupData(DynamicJsonDocument &doc)
     doc[F("gestureSensorGain")] = apds.getGestureGain();
     doc[F("ledBoost")] = apds.getLEDBoost();
     doc[F("gestureWaitTime")] = apds.getGestureWaitTime();
-    doc[F("gPulseL")] = 2;  // TODO
-    doc[F("gPulseC")] = 10; // TODO
+    doc[F("gPulseL")] = apds.getGesturePulseLength();
+    doc[F("gPulseC")] = apds.getGesturePulseCount();
     doc[F("gEnterThreshold")] = apds.getGestureEnterThresh();
     doc[F("gExitThreshold")] = apds.getGestureExitThresh();
 
@@ -290,37 +296,39 @@ void APDSIF_receiveSensorSetupData(DynamicJsonDocument &doc)
     {
         ESP_LOGD(TAG, "ALS enabled");
         apds.enableLightSensor(enableALS_Isr);
-        uint16_t threshold;
-        threshold = doc[F("alsInterruptLowThreshold")];
-        apds.setLightIntLowThreshold(threshold);
-        threshold = doc[F("alsInterruptHighThreshold")];
-        apds.setLightIntHighThreshold(threshold);
-        apds.setAmbientLightGain(doc[F("lightSensorGain")]);
     }
     else
     {
         apds.disableLightSensor();
     }
+    uint16_t threshold;
+    threshold = doc[F("alsInterruptLowThreshold")];
+    apds.setLightIntLowThreshold(threshold);
+    threshold = doc[F("alsInterruptHighThreshold")];
+    apds.setLightIntHighThreshold(threshold);
+    apds.setAmbientLightGain(doc[F("lightSensorGain")]);
+    apds.setAlsIntPersist(doc[F("alsIntPersistance")]);
 
     //
 
     if (enableProximity)
     {
         ESP_LOGD(TAG, "PROX enabled");
-
         apds.enableProximitySensor(enableProximity_Isr);
-
-        apds.setProximityGain(doc[F("proximitySensorGain")]);
-        apds.setLEDDrive(doc[F("ledDrive")]);
-        uint8_t pPulseL = doc[F("pPulseL")]; // TODO
-        uint8_t pPulseC = doc[F("pPulseC")]; // TODO
-        apds.setProximityIntLowThreshold(doc[F("pInterruptLowThreshold")]);
-        apds.setProximityIntHighThreshold(doc[F("pInterruptHighThreshold")]);
     }
     else
     {
         apds.disableProximitySensor();
     }
+    apds.setProximityGain(doc[F("proximitySensorGain")]);
+    apds.setLEDDrive(doc[F("ledDrive")]);
+    apds.setProxPulseLength(doc[F("pPulseL")]);
+    apds.setProxPulseCount(doc[F("pPulseC")]);
+    apds.setProximityIntLowThreshold(doc[F("pInterruptLowThreshold")]);
+    apds.setProximityIntHighThreshold(doc[F("pInterruptHighThreshold")]);
+    apds.setProxIntPersist(doc[F("pIntPersistance")]);
+
+    apds.setProxAlsWtime(doc[F("wTimeLowPower")]);
 
     //
 
@@ -331,8 +339,8 @@ void APDSIF_receiveSensorSetupData(DynamicJsonDocument &doc)
 
         apds.setGestureGain(doc[F("gestureSensorGain")]);
         apds.setLEDBoost(doc[F("ledBoost")]);
-        uint8_t gPulseL = doc[F("gPulseL")]; // TODO
-        uint8_t gPulseC = doc[F("gPulseC")]; // TODO
+        apds.setGesturePulseLength(doc[F("gPulseL")]);
+        apds.setGesturePulseCount(doc[F("gPulseC")]);
         apds.setGestureWaitTime(doc[F("gestureWaitTime")]);
         apds.setGestureEnterThresh(doc[F("gEnterThreshold")]);
         apds.setGestureExitThresh(doc[F("gExitThreshold")]);
