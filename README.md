@@ -9,6 +9,7 @@ So, it is a good idea to make a reset (disconnetc ESP from Power) if you discove
 
 
 Used Library: https://github.com/VArt67/APDS-9960_Gesture_Sensor_esp8266_Library
+
 I copied the cpp/h files of that library into this repo
 
 Web Interface
