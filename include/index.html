@@ -1,0 +1,551 @@
+const char MAIN_page[] PROGMEM = R"=====(
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>ADSP-9960 Test</title>
+
+    <style>
+        :root {
+            --bg: #fff;
+            --fg: #000;
+
+            --info: #0000dd;
+            --warn: #ff7700;
+            --success: #009900;
+
+            --input-bg: #eee;
+
+            --primary: #006ec0;
+            --primary-hover: #044e86;
+            --secondary: #007fe1;
+        }
+
+        fieldset,
+        input[type=submit],
+        .btn,
+        .out {
+            border-radius: 4px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: nowrap;
+        }
+
+        .row>* {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        *,
+        ::after,
+        ::before {
+            box-sizing: border-box;
+        }
+
+        table {
+            /* border: 1px solid red; */
+        }
+
+        tr {
+            /* border: 1px solid blue; */
+        }
+
+        td {
+            padding-bottom: 0px;
+            padding-top: 0px;
+            padding-right: 10px;
+            border-bottom-width: 0px;
+            border-top-width: 0px;
+            /* border: 1px solid green; */
+        }
+
+        .btn {
+            margin-top: 5px;
+        }
+
+        .mb-1 {
+            margin-top: 20px;
+            border-color: var(--primary);
+        }
+
+        .mb-2 {
+            border-color: var(--secondary);
+        }
+
+        .des {
+            margin-top: 2px;
+            font-size: x-large;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .subdes {
+            font-size: large;
+            color: var(--secondary);
+            margin-left: 7px;
+        }
+
+        .out-legend {
+            font-size: large;
+        }
+
+        #ALS_output,
+        #Proximity_output,
+        #Gesture_output,
+        #NumInterrupts {
+            font-family: Monospace;
+            font-weight: bold;
+            font-size: x-large;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div id="wrapper">
+        <div id="content">
+            <fieldset class="mb-1">
+                <legend class="des">Sensor setup</legend>
+                <form method="put" action="/save" id="settings">
+                    <div class="s_content">
+                        <fieldset class="mb-2">
+                            <legend class="subdes">Ambient Light Sensor (ALS)</legend>
+                            <table>
+                                <tr>
+                                    <td><label>Enable Ambient Light</label> </td>
+                                    <td><input type="checkbox" name="enableLightSensor" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Enable Interrupts</label> </td>
+                                    <td><input type="checkbox" name="enableLightSensorInterrupts" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Ambient Light Sensor gain</label> </td>
+                                    <td><select name="lightSensorGain">
+                                            <option value="0">1x</option>
+                                            <option selected value="1">4x / default</option>
+                                            <option value="2">16x</option>
+                                            <option value="3">64x</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>ALS interrupt LOW threshold</label> </td>
+                                    <td><input type="number" min="0" max="65535" step="1" value="0" required
+                                            name="alsInterruptLowThreshold"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>ALS interrupt HIGH threshold</label> </td>
+                                    <td><input type="number" min="0" max="65535" step="1" value="65535" required
+                                            name="alsInterruptHighThreshold">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><label>Persistence Register (0x8C) </label></td>
+                                    <td>-na- </br>Any
+                                        proximity value outside of threshold range </td>
+                                </tr>
+                            </table>
+                        </fieldset>
+
+                        <fieldset class="mb-2">
+                            <legend class="subdes">Proximity Sensor</legend>
+
+                            <table>
+                                <tr>
+                                    <td><label>Enable Proximity Sensor</label> </td>
+                                    <td><input type="checkbox" name="enableProximitySensor" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Enable Interrupts</label></td>
+                                    <td><input type="checkbox" name="enableProximitySensorInterrupts" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Proximity Sensor gain</label></td>
+                                    <td><select name="proximitySensorGain">
+                                            <option value="0">1x</option>
+                                            <option value="1">2x</option>
+                                            <option selected value="2">4x / default</option>
+                                            <option value="3">8x</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>LED Drive</label></td>
+                                    <td><select name="ledDrive">
+                                            <option selected value="0">100 mA / default</option>
+                                            <option value="1">50 mA</option>
+                                            <option value="2">25 mA / default</option>
+                                            <option value="3">12.5 mA</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Proximity Pulse Length</label></td>
+                                    <td><select name="pPulseL">
+                                            <option value="0">4 us</option>
+                                            <option value="1">8 us / default</option>
+                                            <option selected value="2">16 us</option>
+                                            <option value="3">32 us</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Proximity Pulse Count</label></td>
+                                    <td><input type="number" min="1" max="64" step="1" value="10" required
+                                            name="pPulseC"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Proximity interrupt LOW threshold</label></td>
+                                    <td><input type="number" min="0" max="255" step="1" value="0" required
+                                            name="pInterruptLowThreshold"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Proximity interrupt HIGH threshold</label></td>
+                                    <td><input type="number" min="0" max="255" step="1" value="0" required
+                                            name="pInterruptHighThreshold"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Persistence Register (0x8C) </td>
+                                    <td>-na- </br>Any
+                                        proximity value outside of threshold range </td>
+                                </tr>
+                            </table>
+                        </fieldset>
+
+                        <fieldset class="mb-2">
+                            <legend class="subdes">Gesture Sensor</legend>
+
+                            <table>
+                                <tr>
+                                    <td><label>Enable Gesture Sensor</label></td>
+                                    <td><input type="checkbox" name="enableGestureSensor" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Enable Interrupts</label></td>
+                                    <td><input type="checkbox" name="enableGestureSensorInterrupts" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Sensor gain</label></td>
+                                    <td><select name="gestureSensorGain">
+                                            <option value="0">1x</option>
+                                            <option value="1">2x</option>
+                                            <option selected value="2">4x</option>
+                                            <option value="3">8x</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>LED Boost</label></td>
+                                    <td><select name="ledBoost">
+                                            <option selected value="0">100%</option>
+                                            <option value="1">200%</option>
+                                            <option value="2">300%</option>
+                                            <option value="3">400%</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Wait Time</label></td>
+                                    <td><select name="gestureWaitTime">
+                                            <option value="0">0 ms</option>
+                                            <option selected value="1">2.8 ms</option>
+                                            <option value="2">5.6 ms</option>
+                                            <option value="3">8.4 ms</option>
+                                            <option value="4">14 ms</option>
+                                            <option value="5">22.4 ms</option>
+                                            <option value="6">30.8 ms</option>
+                                            <option value="7">39.2 ms</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Pulse Length</label></td>
+                                    <td><select name="gPulseL">
+                                            <option value="0">4 us</option>
+                                            <option value="1">8 us / default</option>
+                                            <option selected="selected" value="2">16 us</option>
+                                            <option value="3">32 us</option>
+                                        </select></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Pulse Count</label></td>
+                                    <td><input type="number" min="1" max="64" step="1" value="10" required
+                                            name="gPulseC"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Sensor Enter threshold</label></td>
+                                    <td><input type="number" min="0" max="255" step="1" value="40" required
+                                            name="gEnterThreshold"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Gesture Sensor Exit thresholdd</label></td>
+                                    <td><input type="number" min="0" max="255" step="1" value="30" required
+                                            name="gExitThreshold"></td>
+                                </tr>
+                                <tr>
+                                    <td><label>Enable Gesture Mode</label></td>
+                                    <td><input type="checkbox" name="enableGestureMode" /></td>
+                                </tr>
+                            </table>
+                        </fieldset>
+
+                        <div>
+                            <input type="submit" value="Submit" class="btn" />
+                        </div>
+                    </div>
+                </form>
+            </fieldset>
+
+            <fieldset class="mb-1">
+                <legend class="des out">Sensor output</legend>
+                <div class="row">
+                    <legend class="cb-legend">Poll sensor output <input type="checkbox" id="pollSensorOutput"
+                            checked='' /></legend>
+                    <legend class="nr-legend">Poll intervall (ms) <input type="number" min="500" max="10000" step="1"
+                            value="2000" id="pollSensorIntervall"></legend>
+                </div>
+                <div class="row">
+                    <legend class="out-legend">Interrupts:</legend>
+                    <div id="NumInterrupts">0</div>
+                </div>
+                <fieldset class="mb-out">
+                    <legend class="subdes out">ALS data</legend>
+                    <div id="ALS_output"></div>
+                </fieldset>
+
+                <fieldset class="mb-out">
+                    <legend class="subdes out">Proximity data</legend>
+                    <div id="Proximity_output"></div>
+                </fieldset>
+
+                <fieldset class="mb-out">
+                    <legend class="subdes out">Gesture data</legend>
+                    <div id="Gesture_output"></div>
+                </fieldset>
+            </fieldset>
+
+            <form method="put" action="/saveLowLevel" id="settings">
+                <div class="s_content">
+                    <fieldset class="mb-1">
+                        <legend class="subdes">Low Level Mode Register</legend>
+
+                        <table>
+                            <tr>
+                                <td><label>Enable Power</label> </td>
+                                <td><input type="checkbox" name="enablePower" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable ALS</label> </td>
+                                <td><input type="checkbox" name="enableLightSensorLL" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable Proximity</label> </td>
+                                <td><input type="checkbox" name="enableProximitySensorLL" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable Wait Timer</label></td>
+                                <td><input type="checkbox" name="enableWaitTimer" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable ALS Interrupt</label></td>
+                                <td><input type="checkbox" name="enableLightSensorInterruptsLL" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable Proximity Interrupt</label></td>
+                                <td><input type="checkbox" name="enableProximitySensorInterruptsLL" /></td>
+                            </tr>
+                            <tr>
+                                <td><label>Enable Gesture</td>
+                                <td><input type="checkbox" name="enableGestureSensorLL" /></td>
+                            </tr>
+                        </table>
+
+                        <div>
+                            <input type="submit" value="Submit" class="btn" />
+                        </div>
+                    </fieldset>
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+
+    <fieldset class="mb-1">
+        <legend>For website development: (Temporary) Load a new html code which will be provided at next re-load
+        </legend>
+        <form method="post" action="/upload" enctype="multipart/form-data">
+            <input type="file" name="FileName">
+            <input class="button" type="submit" value="Upload">
+        </form>
+    </fieldset>
+
+
+    <script>
+        //###########################################
+        //  get and set gesture setup data
+
+        // Parse Json array and set values
+        //   
+        function parseSetup(jObj) {
+            if (null != jObj) {
+                for (const elId in jObj) {
+                    //console.info("ID="+elId);
+
+                    els = document.getElementsByName(elId);
+                    for (let i = 0; i < els.length; i++) {
+                        el = els[i];
+                        if (el.type == "text") {
+                            //console.info("this is Text Box.");
+                            el.value = jObj[elId];
+                        }
+                        else if (el.type == "checkbox") {
+                            //console.info("this is CheckBox.");
+                            if (jObj[elId] == "1")
+                                el.checked = true;
+                            else
+                                el.checked = false;
+                            el.value = jObj[elId];
+                        }
+                        else if (el.type == "radio") {
+                            //console.info("this is Radio.");
+                        }
+                        else if (el.type == "number") {
+                            //console.info("this is Number.");
+                            el.value = jObj[elId];
+                        }
+                        else if (el.type == "select-one") {
+                            //console.info("this is Select");
+                            el.selectedIndex = jObj[elId];
+                        }
+                        else
+                            console.info("UNKNOWN el.type=" + el.type + " el.tagName=" + el.tagName);
+                    }
+                }
+
+            }
+        }
+
+        // Get data and call parsing functiomn
+        function getAjax(url, ptr, method = "GET", json = null) {
+            var xhr = new XMLHttpRequest();
+            if (xhr != null) {
+                xhr.open(method, url, true);
+                xhr.onreadystatechange = p;
+                if ("POST" == method)
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xhr.send(json);
+            }
+            function p() {
+                if (xhr.readyState == 4) {
+                    if (null != xhr.responseText) {
+                        if (null != ptr)
+                            ptr(JSON.parse(xhr.responseText));
+                    }
+                }
+            }
+        }
+
+        // Need this in order to get 0/1 instead on/off or false/true for checkBoxes
+        document.addEventListener('change', function (e) {
+            if (e.target.type == "checkbox") {
+                obj = e.target;
+                if (obj.checked) {
+                    obj.value = 1;
+                    //console.info(obj.name +"" + obj.value +" Yes checked!  DOC"); //when checked
+                }
+                else {
+                    obj.value = 0;
+                    //console.info(obj.name +"" + obj.value +" Not checked!  DOC"); //when not checked
+                }
+            }
+        });
+
+        function getSetupData() {
+            // Request update of all setup data
+            setTimeout(() => { getAjax("/api/setup", parseSetup); }, 10);
+        }
+
+        getSetupData();  // Call it at load of page
+
+
+        //############################################
+        // Polling sensor output:
+        var intervaId = 0;
+        var intervallTime = 2000;
+
+        /////////////////////////////////////////////
+        // Parse Json array and set values    
+        // get output of ALS/Prox/Gesture
+        var pollMutex = false;
+        var timeoutId = 0; // prevent multiple poll without response 
+        function parseSensorOutput(jObj) {
+            pollMutex = false;
+            clearTimeout(timeoutId);
+            timeoutId = 0;
+            if (null != jObj) {
+                for (const elId in jObj) {
+                    //console.info("ID=" + elId);
+                    el = document.getElementById(elId);
+                    if (el) {
+                        el.innerHTML = jObj[elId];
+                    }
+                }
+            }
+        }
+
+        function initiateOnePoll() {
+            if (!pollMutex) {
+                getAjax("/api/pollSensorOutput", parseSensorOutput);
+                pollMutex = true;
+                timeoutId = setTimeout(() => { pollMutex = false; }, 5000);
+            }
+        }
+
+
+        function startSensorPoll() {
+            intervaId = setInterval(() => { initiateOnePoll(); }, intervallTime);
+        }
+
+        function restartPoll() {
+            intervallTime = pollIntervallEl.value;
+            //stopSensorPoll();
+            if (intervaId > 0)
+                clearInterval(intervaId);
+
+            if (pollCbEl.checked) {
+                startSensorPoll();
+            }
+            // Save CheckBox / Intervall state into the session storage object        
+            sessionStorage.setItem("pollCheckBoxState", pollCbEl.checked);
+            sessionStorage.setItem("pollIntervallValue", pollIntervallEl.value);
+        }
+
+        // setup the sensor output poll
+        // if check-box or intervall changes we (re-)start polling
+        var pollCbEl = document.getElementById("pollSensorOutput");
+        if (pollCbEl) {
+            pollCbEl.addEventListener("change", restartPoll);
+            if (sessionStorage.getItem("pollCheckBoxState")) {
+                // Restore the contents
+                pollCbEl.checked = (sessionStorage.getItem("pollCheckBoxState").toLowerCase() === "true");
+            }
+            else
+                pollCbEl.checked = false;
+        }
+        var pollIntervallEl = document.getElementById("pollSensorIntervall");
+        if (pollIntervallEl) {
+            pollIntervallEl.addEventListener("change", restartPoll);
+            if (sessionStorage.getItem("pollIntervallValue")) {
+                // Restore the content
+                pollIntervallEl.value = sessionStorage.getItem("pollIntervallValue");
+            }
+            else
+                pollIntervallEl.value = intervallTime
+        }
+        restartPoll();
+
+    </script>
+
+</body>
+
+</html>
+)=====";
